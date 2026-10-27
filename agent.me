@@ -1,0 +1,30 @@
+# AgentFlow working contract
+
+Use one method: domain-first MVI with typed commands.
+
+1. Domain owns framework-independent values, rules, IDs, revisions and errors.
+2. A Feature owns value State, Action and Operation. Its reducer is synchronous
+   and pure: `(inout State, Action) -> [Command<Operation>]`.
+3. The MainActor Store alone owns mutable feature state and command task lifetime.
+4. UI renders state and sends actions. Local focus or animation state may stay
+   in the view; do not copy domain or workflow state into a ViewModel.
+5. Command describes work. The app's runner uses explicit Sendable ports to
+   perform it and returns result actions. Keep I/O out of reducers and Domain.
+6. Compose child values and mapped commands into the same state owner. A read
+   projection or send facade must not create another Store or task registry.
+7. Runtime tokens, cancellation keys, request IDs and durable operation IDs have
+   different jobs. Preserve each at its actual authority boundary.
+8. Revoke stale delivery before cooperative cancellation. Completion must not
+   remove a replacement task's registration. Never treat cancellation as rollback.
+9. A database or provider adapter owns transactions, CAS, durable receipts and
+   unknown-outcome recovery. Do not put a generic business retry policy here.
+10. Do not drop actions or receipts to coalesce UI snapshots. Do not retry a
+    write whose outcome is unknown without its adapter's reconciliation contract.
+11. Use one pinned remote package in each dependency graph. Keep app state,
+    data formats and routing outside this SDK.
+12. Support Swift 6 language mode with the documented tools/deployment floors.
+    Do not add newer APIs because a development machine happens to support them.
+13. Change the smallest complete owner and its required consumers. Add an
+    abstraction only when actual shared contracts justify it.
+14. Report source changes, executed checks, and unverified boundaries separately.
+    Do not claim that source review or package tests prove app/runtime readiness.
