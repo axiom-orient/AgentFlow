@@ -1,4 +1,5 @@
-/// Stable product identity for cancellable command work.
+/// A cancellation slot shared by commands within one Store.
+/// This is not a request ID, execution token or durable operation identity.
 public struct CancellationID: RawRepresentable, Hashable, Sendable, Codable,
   ExpressibleByStringLiteral, CustomStringConvertible
 {

@@ -95,6 +95,49 @@ struct StoreTests {
     #expect(store.state == [200])
   }
 
+  @Test(arguments: [CommandPolicy.concurrent, .cancelInFlight("job"), .dropIfRunning("job")])
+  @MainActor func completedSendCannotPublishIntoLaterWork(_ policy: CommandPolicy) async {
+    let probe = Probe()
+    let store = makeStore(probe)
+    store.send(.start(1, policy))
+    await probe.waitStarted(1)
+    await probe.emit(1, 1)
+    await probe.release(1)
+    // Unlike Probe.waitCompleted, finish also joins the Store's completion cleanup.
+    await store.finish()
+    await probe.emit(1, 100)
+    #expect(store.state == [1])
+
+    store.send(.start(2, policy))
+    await probe.waitStarted(2)
+    await probe.emit(1, 200)
+    await probe.emit(2, 2)
+    #expect(store.state == [1, 2])
+    await probe.release(2)
+    await store.finish()
+  }
+
+  @Test @MainActor func cancelAllAllowsNewWorkWithoutRestoringOldSend() async {
+    let probe = Probe()
+    let store = makeStore(probe)
+    store.send(.start(1, .cancelInFlight("job")))
+    await probe.waitStarted(1)
+    store.cancelAll()
+    // Removed work is deliberately still suspended. finish must not join it.
+    await store.finish()
+    store.send(.start(2, .dropIfRunning("job")))
+    await probe.waitStarted(2)
+    await probe.emit(1, 100)
+    await probe.emit(2, 2)
+    #expect(store.state == [2])
+    #expect(store.isRunning("job"))
+    await probe.release(1)
+    await probe.release(2)
+    await store.finish()
+    await probe.waitCompleted(1)
+    #expect(await probe.completed[1] == true)
+  }
+
   @Test @MainActor func cancellationRevokesBeforeTheRunnerCooperates() async {
     let probe = Probe()
     let store = makeStore(probe)

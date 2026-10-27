@@ -1,7 +1,8 @@
 # AgentFlow
 
-Read [agent.me](agent.me) before changing this package or adapting a consumer.
-The public execution contract is in [docs/CONTRACT.md](docs/CONTRACT.md).
+Before changing this package or adapting a consumer, read [agent.me](agent.me),
+then [docs/CONTRACT.md](docs/CONTRACT.md). The latter is the single behavioral
+contract; source declarations define the public API.
 
 - Keep one authoritative runtime in this repository. Consuming apps use a
   pinned remote Swift package; do not maintain app-specific runtime forks.

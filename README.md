@@ -17,7 +17,7 @@ engine, or host tooling.
 
 ```swift
 dependencies: [
-  .package(url: "https://github.com/axiom-orient/AgentFlow.git", exact: "0.1.0")
+  .package(url: "https://github.com/axiom-orient/AgentFlow.git", exact: "0.1.1")
 ]
 ```
 
@@ -47,24 +47,18 @@ new wrapper types or a second effect system.
 
 ## Execution
 
-Reducers do not start Tasks or perform I/O. Supply time, IDs and external
-results as explicit values. Runners interpret operations with concrete app
-ports. A child feature is value state plus mapped actions and operations;
-it does not need its own task owner.
+Follow [the execution contract](docs/CONTRACT.md) for state ownership, child
+composition, cancellation, result delivery and durable recovery. It is the
+behavioral reference for this package and its consumers.
 
-Store serializes synchronous reducer turns, including reentrant observation
-callbacks. Effect completion order is unspecified. For replaceable
-work, use a cancellation key and keep the current request/revision in feature
-state. `Command.map` preserves keys, so consumers namespace keys for distinct
-child instances.
-
-Cancellation revokes result delivery and requests cooperative task cancellation.
-It does not undo database commits or remote writes. Their durable identity,
-receipts and uncertain outcomes remain the adapter's responsibility.
+Observation tracks the Store's `state` property. A child read projection does
+not automatically provide field-level observation. The package currently has
+no scoped observation API; keep projections on the same state owner.
 
 ## Development
 
-Start with [agent.me](agent.me) and [AGENTS.md](AGENTS.md). The repository is
+Start with [AGENTS.md](AGENTS.md) → [agent.me](agent.me) →
+[the execution contract](docs/CONTRACT.md). The repository is
 the runtime's authoritative source. [NOTICE.md](NOTICE.md) records provenance;
 [LICENSE](LICENSE) applies to this package only.
 
@@ -80,3 +74,9 @@ database, provider and distribution qualification.
 Consumers should pin an exact release and commit the actual resolved revision.
 During the pre-1.0 period, an incompatible public contract requires a new minor
 version and explicit migration notes. A patch must preserve public behavior.
+
+`0.1.1` preserves the public API, encoding and execution behavior. It removes
+a redundant delivery-key check, adds completion/key-reuse regressions and
+clarifies observation, result delivery and task joining. No consumer source
+migration is required; adopting this patch requires updating the exact pin
+and its resolved revision together.

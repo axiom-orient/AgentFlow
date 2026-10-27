@@ -24,6 +24,7 @@ public final class Store<
   // It is bookkeeping owned only by this Store, not a second product-state owner.
   @MainActor
   private final class Runtime {
+    // Membership is the sole result-delivery authority. Keys only select active work.
     var tasks: [UInt64: Task<Void, Never>] = [:]
     var keyedTasks: [CancellationID: UInt64] = [:]
     var nextToken: UInt64 = 0
@@ -76,7 +77,8 @@ public final class Store<
   public func isRunning(_ id: CancellationID) -> Bool { runtime.keyedTasks[id] != nil }
 
   /// Awaits still-owned work, including commands issued by its result actions.
-  /// Cancel infinite streams first. Already revoked, noncooperative work is not joined.
+  /// Work revoked before selection is not joined. Revoking a selected task does not
+  /// interrupt an existing await of that task. Cancel infinite streams before calling.
   /// This is a deterministic test/integration boundary, not an automatic UI lifecycle hook.
   public func finish() async {
     while let task = runtime.tasks.values.first { await task.value }
@@ -106,7 +108,7 @@ public final class Store<
     if let id { runtime.keyedTasks[id] = token }
     let runner = self.runner
     let send = Send<Action> { [weak self] action in
-      await self?.receive(action, token: token, id: id)
+      await self?.receive(action, token: token)
     }
     // MainActor serializes registration before this task can start.
     runtime.tasks[token] = Task { [weak self] in
@@ -115,9 +117,8 @@ public final class Store<
     }
   }
 
-  private func receive(_ action: Action, token: UInt64, id: CancellationID?) {
+  private func receive(_ action: Action, token: UInt64) {
     guard runtime.tasks[token] != nil else { return }
-    if let id, runtime.keyedTasks[id] != token { return }
     send(action)
   }
 
